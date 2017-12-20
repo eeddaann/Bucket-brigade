@@ -11,15 +11,16 @@ class Picker:
     '''
 
     def __init__(self, tf_mu, tf_variance, tb_mu, tb_variance, tp_mu, tp_variance, name):
-        self.name = name
+        self.position = None
+        self.cur_bucket = None
         self.tf_mu = tf_mu * DISCRETIZATION_FACTOR  # expected value forward
         self.tf_sigma = np.sqrt(tf_variance) * DISCRETIZATION_FACTOR  # std forward
         self.tb_mu = tb_mu * DISCRETIZATION_FACTOR  # expected value backward
         self.tb_sigma = np.sqrt(tb_variance) * DISCRETIZATION_FACTOR  # std backward
         self.tp_mu = tp_mu * DISCRETIZATION_FACTOR  # expected value picking
         self.tp_sigma = np.sqrt(tp_variance) * DISCRETIZATION_FACTOR  # std picking
-        self.cur_batch = None  # the product that the employee make now
-        self.finished = 0  # how many products that employee made
+        self.cur_batch = None  # reference to the batch the employee make now
+
 
     def get_forward_time(self):
         # sample time for task
@@ -35,31 +36,10 @@ class Picker:
 
 class Batch:
     def __init__(self, start, expected_time):
-        self.progress = 0
-        self.start = start
-        self.expected_time = expected_time
-        self.finished = False
-
-    def update_expected_time(self, new_expected_time):
-        # when speed changed
-        self.expected_time = (1 - self.progress) * new_expected_time
-
-    def update_state(self, now):
-        self.progress = float(now - self.start) / self.expected_time
-        if self.progress >= 1:
-            self.finished = True
-
-    def copy_state(self, other):
-        # for bb
-        self.progress = other.progress
-        self.expected_time = other.expected_time
+        self.original_list = []
 
     def transfer(self, other):
-        # switch products between employees
-        self.progress, other.progress = other.progress, self.progress
-        self.start, other.start = other.start, self.start
-        other.update_expected_time(other.expected_time)
-        self.update_expected_time(self.expected_time)
+        pass
 
 
 class dispatcher:
