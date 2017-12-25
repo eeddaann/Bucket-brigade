@@ -10,6 +10,7 @@ class Picker:
     defines a employee
     '''
 
+
     def __init__(self, tf_mu, tf_variance, tb_mu, tb_variance, tp_mu, tp_variance):
         self.rank = None  # relative position of picker to others
         self.cur_pick_face = None  # reference to the current pick face
