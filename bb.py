@@ -9,7 +9,8 @@ class Picker:
     defines a employee
     '''
 
-    def __init__(self, tf_mu, tf_variance, tb_mu, tb_variance, tp_mu, tp_variance, rank,cur_pick_face):
+    def __init__(self,performance, rank):
+        tf_mu, tf_variance, tb_mu, tb_variance, tp_mu, tp_variance = performance
         self.rank = rank  # relative position of picker to others
         self.cur_pick_face = 0  # reference to the current pick face
         self.cur_batch = None  # reference to the batch the employee make now
@@ -42,7 +43,6 @@ class Picker:
     def pick_item(self, now):
         # pick one item
         if self.cur_batch[self.cur_pick_face]==0 :
-            print "imasha"
             return
         self.cur_batch[self.cur_pick_face] -= 1
         self.busy_till = now + self.get_picking_time()
@@ -68,14 +68,13 @@ class Picker:
 
 
 class simulation:
-    def __init__(self):
-        data = np.loadtxt(open("data/25p.csv", "rb"), delimiter=",", skiprows=1)
+    def __init__(self,picksize,pickers,performance,data):
+        #data = np.loadtxt(open("data/25p.csv", "rb"), delimiter=",", skiprows=1)
         self.batch_list = data
-        emp1 = Picker(1, 0.2, 0.5, 0.1, 1.4, 2, 1,0)
-        emp2 = Picker(1, 0.2, 0.5, 0.1, 1.4, 2, 2,1)
-        emp3 = Picker(1, 0.2, 0.5, 0.1, 1.4, 2, 3,2)
-        self.pickers = [emp1, emp2, emp3]
-        self.picksize = len(self.batch_list[0])
+        self.pickers = []
+        for rank in range(pickers):
+            self.pickers.append(Picker(performance,rank))
+        self.picksize = picksize
 
 
     def check_behind_same_pickface(self, picker):
@@ -105,7 +104,6 @@ class simulation:
                     else:
                         picker.cur_batch = self.batch_list[-1]
                         self.batch_list = self.batch_list[:-1]
-                        print len(self.batch_list)
                         picker.moving_direction = 1
                         break
 
@@ -128,17 +126,12 @@ class simulation:
                      else:  # if he is busy the picker should wait for him
                         continue
 
-
-
-
                 else:
                     picker.move(now)
-
-
 
             now += 0.0001
 
         return now  # time that loop took
 
 
-print "Hello, results for 6p: ", simulation().run_config()
+#print "Hello, results for 6p: ", simulation().run_config()
