@@ -41,6 +41,9 @@ class Picker:
 
     def pick_item(self, now):
         # pick one item
+        if self.cur_batch[self.cur_pick_face]==0 :
+            print "imasha"
+            return
         self.cur_batch[self.cur_pick_face] -= 1
         self.busy_till = now + self.get_picking_time()
         if sum(self.cur_batch)==0:
@@ -66,8 +69,8 @@ class Picker:
 
 class simulation:
     def __init__(self):
-        data = np.loadtxt(open("data/6p.csv", "rb"), delimiter=",", skiprows=3)
-        self.batch_list = data #[[2, 3, 2, 6, 5, 4],[1, 2, 2, 3, 6, 5], [1, 5, 3, 1, 2, 5],[1, 2, 2, 3, 6, 5],[1, 2, 2, 3, 6, 5],[1, 2, 2, 3, 6, 5], [2, 3, 2, 6, 5, 4], [1, 5, 3, 1, 2, 5],[1, 2, 2, 3, 6, 5],[1, 2, 2, 3, 6, 5]]
+        data = np.loadtxt(open("data/25p.csv", "rb"), delimiter=",", skiprows=1)
+        self.batch_list = data
         emp1 = Picker(1, 0.2, 0.5, 0.1, 1.4, 2, 1,0)
         emp2 = Picker(1, 0.2, 0.5, 0.1, 1.4, 2, 2,1)
         emp3 = Picker(1, 0.2, 0.5, 0.1, 1.4, 2, 3,2)
@@ -84,37 +87,47 @@ class simulation:
         now = 0
 
         while len(self.batch_list) > 0:  # and everyone finish
+
             for picker in self.pickers:
                 if picker.is_busy(now):
-                   continue
+                    continue
 
                 if picker.cur_pick_face < 0:
                     picker.moving_direction = 1
                     picker.move(now)
+                    break
 
 
-
-                if picker.cur_batch == None:  # if batch is finished. Check in the beginning and in the end
+                if picker.cur_batch is None:  # if batch is finished. Check in the beginning and in the end
                     if self.batch_list == []:
                         picker.cur_batch = []
+                        break
                     else:
                         picker.cur_batch = self.batch_list[-1]
                         self.batch_list = self.batch_list[:-1]
+                        print len(self.batch_list)
                         picker.moving_direction = 1
+                        break
 
                 if picker.cur_pick_face > self.picksize:
                      picker.moving_direction = -1
                      picker.move(now)
+                     break
 
-                if picker.cur_batch[picker.cur_pick_face-1] > 0:  # if need to pick from pickface - pick
-                    picker.pick_item(now)
-                    continue
+                if picker.cur_pick_face >= self.picksize:
+                   picker.cur_pick_face = 0
+
+                if picker.cur_batch[picker.cur_pick_face] > 0:  # if need to pick from pickface - pick
+                     picker.pick_item(now)
+                     break
+
                 if self.check_behind_same_pickface(
                         picker) and picker.moving_direction == -1:  # if the someone behind is at the same pickface
-                    if not self.pickers[picker.rank - 1].is_busy(now):  # if the someone behind is free
+                     if not self.pickers[picker.rank - 1].is_busy(now):  # if the someone behind is free
                         picker.transfer(self.pickers[picker.rank - 1], now)
-                    else:  # if he is busy the picker should wait for him
+                     else:  # if he is busy the picker should wait for him
                         continue
+
 
 
 

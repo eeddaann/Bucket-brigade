@@ -2,7 +2,7 @@ from pulp import *
 import numpy as np
 import csv
 
-with open("data/25p.csv", "r") as f:
+with open("data/6p.csv", "r") as f:
     reader = csv.reader(f)
     a = list(reader)
 items = []
@@ -12,7 +12,7 @@ for lst in a:
 
 itemCount = len(items)
 maxBins = itemCount
-binCapacity = ([200] * maxBins)
+binCapacity = ([60] * maxBins)
 binCost = [10] * maxBins
 
 y = pulp.LpVariable.dicts('BinUsed', range(maxBins), lowBound=0, upBound=1, cat=pulp.LpInteger)
