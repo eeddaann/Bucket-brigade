@@ -2,7 +2,6 @@ import numpy as np
 
 HOURS = 8
 DAYS = 18
-DISCRETIZATION_FACTOR = 1  # the larger, the more accurate, defines the atomic time unit of the simulation. for example 60 means that each iteration in the model is a second.
 
 
 class Picker:
@@ -10,180 +9,129 @@ class Picker:
     defines a employee
     '''
 
-    def __init__(self, tf_mu, tf_variance, tb_mu, tb_variance, tp_mu, tp_variance, name):
-        self.name = name
-        self.tf_mu = tf_mu * DISCRETIZATION_FACTOR  # expected value forward
-        self.tf_sigma = np.sqrt(tf_variance) * DISCRETIZATION_FACTOR  # std forward
-        self.tb_mu = tb_mu * DISCRETIZATION_FACTOR  # expected value backward
-        self.tb_sigma = np.sqrt(tb_variance) * DISCRETIZATION_FACTOR  # std backward
-        self.tp_mu = tp_mu * DISCRETIZATION_FACTOR  # expected value picking
-        self.tp_sigma = np.sqrt(tp_variance) * DISCRETIZATION_FACTOR  # std picking
-        self.cur_batch = None  # the product that the employee make now
-        self.finished = 0  # how many products that employee made
+    def __init__(self,performance, rank):
+        tf_mu, tf_variance, tb_mu, tb_variance, tp_mu, tp_variance = performance
+        self.rank = rank  # relative position of picker to others
+        self.cur_pick_face = 0  # reference to the current pick face
+        self.cur_batch = None  # reference to the batch the employee make now
+        self.busy_till = 0  # when it bigger then now, the picker is busy
+        self.moving_direction = 1  # 1 if moves forward -1 else
+        self.tf_mu = tf_mu  # expected value forward
+        self.tf_sigma = np.sqrt(tf_variance)  # std forward
+        self.tb_mu = tb_mu  # expected value backward
+        self.tb_sigma = np.sqrt(tb_variance)  # std backward
+        self.tp_mu = tp_mu  # expected value picking
+        self.tp_sigma = np.sqrt(tp_variance)  # std picking
 
     def get_forward_time(self):
         # sample time for task
-        return max(0,np.random.normal(self.tf_mu, self.tf_sigma))+0.01
+        return max(0, np.random.normal(self.tf_mu, self.tf_sigma)) + 0.01
+
     def get_backward_time(self):
         # sample time for task
         return max(0, np.random.normal(self.tb_mu, self.tb_sigma)) + 0.01
+
     def get_picking_time(self):
         # sample time for task
         return max(0, np.random.normal(self.tp_mu, self.tp_sigma)) + 0.01
 
+    def is_busy(self, now):
+        # checks if picker's doing something
+        self.busy_till = max(0,self.busy_till-0.0001)
+        return self.busy_till >= now
 
+    def pick_item(self, now):
+        # pick one item
+        if self.cur_batch[self.cur_pick_face]==0 :
+            return
+        self.cur_batch[self.cur_pick_face] -= 1
+        self.busy_till = now + self.get_picking_time()
+        if sum(self.cur_batch)==0:
+            self.cur_batch=None
 
-class Batch:
-    def __init__(self, start, expected_time):
-        self.progress = 0
-        self.start = start
-        self.expected_time = expected_time
-        self.finished = False
+    def transfer(self, other,now):
+        # makes transfer of bucket to other picker
+        self.cur_batch, other.cur_batch = other.cur_batch, self.cur_batch
+        self.moving_direction = self.moving_direction * -1
+        other.moving_direction = other.moving_direction * -1
 
-    def update_expected_time(self, new_expected_time):
-        # when speed changed
-        self.expected_time = (1 - self.progress) * new_expected_time
+    def move(self, now):
+        # moves the picker
 
-    def update_state(self, now):
-        self.progress = float(now - self.start) / self.expected_time
-        if self.progress >= 1:
-            self.finished = True
-
-    def copy_state(self, other):
-        # for bb
-        self.progress = other.progress
-        self.expected_time = other.expected_time
-
-    def transfer(self, other):
-        # switch products between employees
-        self.progress, other.progress = other.progress, self.progress
-        self.start, other.start = other.start, self.start
-        other.update_expected_time(other.expected_time)
-        self.update_expected_time(self.expected_time)
-
-
-class dispatcher:
-    '''
-    orchastrate the employees and products
-    '''
-
-    def __init__(self, config):
-        self.bb_order = config.config['bb'][:]
-        self.employee_lst = config.config['bb']
-        self.employee_lst.extend(config.config['par'])
-
-    def new_day(self, now):
-        #################################################################
-        # we assume that progress saved on each day and workers continue #
-        # from where they stopped. but they start each day with new speed#
-        #################################################################
-        print(str([emp.name + ": " + str(emp.finished) for emp in self.employee_lst]))
-        if self.employee_lst[0].cur_batch == None:  # if start of simulation
-            for employee in self.employee_lst:
-                employee.cur_batch = Batch(now, employee.get_forward_time())
-        else:  # if regular day
-            for employee in self.employee_lst:
-                employee.cur_batch.update_expected_time(employee.get_forward_time())
-
-    def new_product(self, emp, now):
-        emp.finished += 1
-        emp.cur_batch = Batch(emp.get_forward_time(), now)
-
-    def check_order(self, sorted_by_prog_old):
-        # check if two employees met and do the bb
-        if self.bb_order == []:  # if all employees in parallel
-            return True
+        if self.moving_direction == 1:
+            self.busy_till = now + self.get_forward_time()
+            self.cur_pick_face += 1
         else:
-            sorted_by_prog = sorted(self.bb_order, key=lambda emp: emp.cur_batch.progress)
-            if sorted_by_prog_old == sorted_by_prog:  # if order not changed
-                return True
-            else:
-                # they switch places
-                if sorted_by_prog[:1] == self.bb_order[:1]:
-                    sorted_by_prog[1].cur_batch.transfer(sorted_by_prog[0].cur_batch)
-                else:
-                    # forbidden switch
-                    sorted_by_prog[0].cur_batch.copy_state(sorted_by_prog[1].cur_batch)
-
-                if len(self.bb_order) == 3:
-                    # they switch places
-                    if sorted_by_prog[1:2] == self.bb_order[1:2]:
-                        sorted_by_prog[2].cur_batch.transfer(sorted_by_prog[1].cur_batch)
-                    else:
-                        # forbidden switch
-                        sorted_by_prog[2].cur_batch.copy_state(sorted_by_prog[1].cur_batch)
-
-
-
-class configuration:
-    def __init__(self, bb, par):
-        self.config = {'bb': bb, 'par': par}
+            self.busy_till = now + self.get_backward_time()
+            self.cur_pick_face -= 1
+        pass
 
 
 class simulation:
-    def __init__(self, config):
-        self.config = config
-        self.disp = dispatcher(self.config)
-        self.cur_products = {}
-        self.daily_total = []
+    def __init__(self,picksize,pickers,performance,data):
+        #data = np.loadtxt(open("data/25p.csv", "rb"), delimiter=",", skiprows=1)
+        self.batch_list = data
+        self.pickers = []
+        for rank in range(pickers):
+            self.pickers.append(Picker(performance,rank))
+        self.picksize = picksize
+
+
+    def check_behind_same_pickface(self, picker):
+        # checks if there's someone behind who's free in the same pickface
+        return picker.cur_pick_face == self.pickers[picker.rank - 1].cur_pick_face
+
 
     def run_config(self):
         now = 0
-        daily_counter = 0
-        self.disp.new_day(now)
-        for emp in self.disp.employee_lst:
-            self.cur_products[emp.cur_batch] = emp
-        for day in range(DAYS):
-            for time_unit in range(HOURS * 60 * DISCRETIZATION_FACTOR):
-                for product in self.cur_products.keys():
-                    sorted_by_prog_old = sorted(self.disp.bb_order, key=lambda emp: emp.cur_batch.progress)
-                    product.update_state(now)
-                    self.disp.check_order(sorted_by_prog_old)
-                    if product.finished == True:
-                        emp = self.cur_products[product]
-                        self.disp.new_product(emp, now)
-                        del self.cur_products[product]
-                        self.cur_products[emp.cur_batch] = emp
-                        daily_counter += 1
 
-                now += 1
-            self.daily_total.append(daily_counter)
-            daily_counter = 0
-            self.disp.new_day(now)
+        while len(self.batch_list) > 0:  # and everyone finish
 
-        return self.daily_total
+            for picker in self.pickers:
+                if picker.is_busy(now):
+                    continue
+
+                if picker.cur_pick_face < 0:
+                    picker.moving_direction = 1
+                    picker.move(now)
+                    break
 
 
-emp1 = Picker(1,0.2,0.5,0.1,1.4,2,'a')
-emp2 = Picker(1,0.2,0.5,0.1,1.4,2, 'b')
-emp3 = Picker(1,0.2,0.5,0.1,1.4,2, 'c')
+                if picker.cur_batch is None:  # if batch is finished. Check in the beginning and in the end
+                    if self.batch_list == []:
+                        picker.cur_batch = []
+                        break
+                    else:
+                        picker.cur_batch = self.batch_list[-1]
+                        self.batch_list = self.batch_list[:-1]
+                        picker.moving_direction = 1
+                        break
 
-config_dict = {1: ("Parallel:1,2,3", configuration([], [emp1, emp2, emp3])),
-               2: ("bb:1,2,Parallel:3", configuration([emp1, emp2], [emp3])),
-               3: ("bb:1,3,Parallel:2", configuration([emp1, emp3], [emp2])),
-               4: ("bb:3,2,Parallel:1", configuration([emp3, emp2], [emp1])),
-               5: ("bb:3,1,Parallel:2", configuration([emp3, emp1], [emp2])),
-               6: ("bb:2,3,Parallel:1", configuration([emp2, emp3], [emp1])),
-               7: ("bb:2,1,Parallel:3", configuration([emp2, emp1], [emp3])),
-               8: ("bb:1,2,3", configuration([emp1, emp2, emp3], [])),
-               9: ("bb:3,2,1", configuration([emp3, emp2, emp1], [])),
-               10: ("bb:1,3,2", configuration([emp1, emp3, emp2], [])),
-               11: ("bb:2,1,3", configuration([emp2, emp1, emp3], [])),
-               12: ("bb:2,3,1", configuration([emp2, emp3, emp1], [])),
-               13: ("bb:3,1,2", configuration([emp3, emp1, emp2], []))}
+                if picker.cur_pick_face > self.picksize:
+                     picker.moving_direction = -1
+                     picker.move(now)
+                     break
+
+                if picker.cur_pick_face >= self.picksize:
+                   picker.cur_pick_face = 0
+
+                if picker.cur_batch[picker.cur_pick_face] > 0:  # if need to pick from pickface - pick
+                     picker.pick_item(now)
+                     break
+
+                if self.check_behind_same_pickface(
+                        picker) and picker.moving_direction == -1:  # if the someone behind is at the same pickface
+                     if not self.pickers[picker.rank - 1].is_busy(now):  # if the someone behind is free
+                        picker.transfer(self.pickers[picker.rank - 1], now)
+                     else:  # if he is busy the picker should wait for him
+                        continue
+
+                else:
+                    picker.move(now)
+
+            now += 0.0001
+
+        return now  # time that loop took
 
 
-def calc(config):
-    temp = 0
-    temp += sum(simulation(config).run_config())
-    return float(temp) / DAYS
-
-
-input = 0
-while input != 'x':
-    for key in config_dict:
-        print(key, config_dict[key][0])
-    input = raw_input("choose config: (1,2..,13. x to exit)")
-
-    print(config_dict[int(input)][0] + "->  " + str(calc(config_dict[int(input)][1])))
-
+#print "Hello, results for 6p: ", simulation().run_config()
