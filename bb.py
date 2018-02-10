@@ -73,7 +73,7 @@ class simulation:
         self.batch_list = data
         self.pickers = []
         for rank in range(pickers):
-            self.pickers.append(Picker(performance,rank))
+            self.pickers.append(Picker(performance[rank],rank))
         self.picksize = picksize
 
 
