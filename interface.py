@@ -1,5 +1,5 @@
-from bb import simulation
-from bin_packing import pack
+from simulation import simulation
+from heuristic import pack
 
 config_lst = []
 user_input = None

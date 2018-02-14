@@ -1,10 +1,15 @@
 from pulp import *
 import numpy as np
 import csv
-from scipy.stats import power_divergence
 
 
 def pack(capacity, picksize):
+    '''
+    optimizes the batching process
+    :param capacity: how many items each picker can take
+    :param picksize: how many pick faces exists 
+    :return: optimal solution for the batching problem
+    '''
     with open("data/" + str(picksize) + "p.csv", "r") as f:
         reader = csv.reader(f)
         a = list(reader)
@@ -37,7 +42,6 @@ def pack(capacity, picksize):
         prob += lpSum([items[j][1] * x[(items[j][0], i)] for j in range(itemCount)]) <= binCapacity[i] * y[i]
     prob.solve(PULP_CBC_CMD(fracGap=0.00001, maxSeconds=60, threads=None))
 
-    # print("Bins used: " + str(sum(([y[i].value() for i in range(maxBins)]))))
     d = {}
     for i in x.keys():
         if x[i].value() == 1:
@@ -51,16 +55,24 @@ def pack(capacity, picksize):
         print "bin "+str(key) + ": " + str(d[key])
     for i in range(len(ordered)):
         print("batch "+str(i) + ": " + str(ordered[i]) + " sum: " + str(sum(ordered[i])))
-    #print(d.values())
-    print("random order total distance: " + str(reduce(lambda x, y: np.abs(np.sum(np.abs(x - y))), d.values())))
-    print("optimized order total distance: " + str(reduce(lambda x, y: np.abs(np.sum(np.abs(x - y))), ordered)))
     return ordered
 
+def euclidean(x,y):
+    return np.sum(np.abs(x - y))
 
-def solve_tsp_dynamic(points):
+def chebyshev(x,y):
+    return np.max(np.abs(x - y))
+
+def solve_tsp_dynamic(points,distance=euclidean):
+    '''
+    solving n-dim TSP problem
+    :param points: cities or batches in this context
+    :param distance: distance metric
+    :return: 
+    '''
     # adopted from: https://gist.github.com/mlalevic/6222750
     # calc all lengths
-    all_distances = [[np.sum(np.abs(x - y)) for y in points] for x in points]
+    all_distances = [[distance(x,y) for y in points] for x in points]
     # initial value - just distance from 0 to every other point + keep the track of edges
     A = {(frozenset([0, idx + 1]), idx + 1): (dist, [0, idx + 1]) for idx, dist in enumerate(all_distances[0][1:])}
     cnt = len(points)
@@ -73,3 +85,4 @@ def solve_tsp_dynamic(points):
         A = B
     res = min([(A[d][0] + all_distances[0][d[1]], A[d][1]) for d in iter(A)])
     return res[1]
+

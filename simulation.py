@@ -1,8 +1,5 @@
 import numpy as np
 
-HOURS = 8
-DAYS = 18
-
 
 class Picker:
     '''
@@ -132,6 +129,3 @@ class simulation:
             now += 0.0001
 
         return now  # time that loop took
-
-
-#print "Hello, results for 6p: ", simulation().run_config()
