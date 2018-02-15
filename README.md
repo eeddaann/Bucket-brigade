@@ -6,8 +6,7 @@ This project contains two parts:
   2. Heuristic for optimization of batching and ordering.
 
 ## Picking Process
-
-<img src="images/demo.jpg">
+![demo](/images/demo.JPG)
 
 Each picker have to pick a list of items from the pick faces.  The list of items referred as a *batch*.
 
@@ -37,7 +36,8 @@ The task of batching can be solved optimally with the well known Bin packing pro
 
 The problem formulated in Wikipedia as:
 
-<img src="images/binpacking.jpg">
+
+![demo](images/binpacking.JPG)
 
 In the context of batching **the bins represents batches**, subject to the maximal number of items that a picker can pick on a single batch.
 
@@ -61,23 +61,22 @@ It will produce n-dimensional TSP problem, we can also relax the constraint that
 
 The most intuitive is the euclidean distance:
 
-<img src="images/euc.jpg">
+![demo](images/euc.JPG)
 
 Since the meaning of distance in this context is tentative, we are not limited to the euclidean distance...
 
 Better understanding of the dynamics in the picking process may lead to choose different distance metrics, like Chebyshev distance:
 
-<img src="images/cheb.jpg">       
+![demo](images/cheb.JPG)       
 
 which will take into account only the dimension (pick face) with the greatest difference or the **"bottle neck"** between two batches.
 
 Less "radical" metric could be a weighted euclidean metric:
 
-<img src="images/weuc.jpg">
+![demo](images/weuc.JPG)
 
 By tuning the set of weights, different pick faces can be prioritized.
-
-​         
+        
 
 ## running the code
 
