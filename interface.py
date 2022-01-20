@@ -56,15 +56,15 @@ config_lst.append(configuration(25, 3, 'b', 200))
 
 while user_input !='x':
     for config in range(len(config_lst)):
-        print("{} - {}".format(str(config),str(config_lst[config])))
-    user_input = raw_input("choose config: (0,2..,20). x to exit")
+        print(("{} - {}".format(str(config),str(config_lst[config]))))
+    user_input = input("choose config: (0,2..,20). x to exit")
     if user_input == '0':
         for config in config_lst[1:]:
             print("$@==################################################################################==@$")
-            print("$@==#### {} -> {} seconds.####==@$".format(str(config),str(round(config.run_config(),4))))
+            print(("$@==#### {} -> {} seconds.####==@$".format(str(config),str(round(config.run_config(),4)))))
             print("$@==################################################################################==@$")
     else:
         print("$@==################################################################################==@$")
-        print(
-        "$@==#### {} -> {} seconds.####==@$".format(str(config_lst[int(user_input)]), str(round(config_lst[int(user_input)].run_config(),4))))
+        print((
+        "$@==#### {} -> {} seconds.####==@$".format(str(config_lst[int(user_input)]), str(round(config_lst[int(user_input)].run_config(),4)))))
         print("$@==################################################################################==@$")

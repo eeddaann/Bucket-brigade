@@ -15,7 +15,7 @@ def pack(capacity, picksize):
         a = list(reader)
     items = []
     for lst in a:
-        tmp = map(int, lst)
+        tmp = list(map(int, lst))
         items.append((str(tmp), sum(tmp)))
 
     itemCount = len(items)
@@ -23,7 +23,7 @@ def pack(capacity, picksize):
     binCapacity = ([capacity] * maxBins)
     binCost = [10] * maxBins
 
-    y = pulp.LpVariable.dicts('BinUsed', range(maxBins), lowBound=0, upBound=1, cat=pulp.LpInteger)
+    y = pulp.LpVariable.dicts('BinUsed', list(range(maxBins)), lowBound=0, upBound=1, cat=pulp.LpInteger)
     possible_ItemInBin = [(itemTuple[0], binNum) for itemTuple in items for binNum in range(maxBins)]
     x = pulp.LpVariable.dicts('itemInBin', possible_ItemInBin, lowBound=0, upBound=1, cat=pulp.LpInteger)
 
@@ -43,18 +43,18 @@ def pack(capacity, picksize):
     prob.solve(PULP_CBC_CMD(fracGap=0.00001, maxSeconds=60, threads=None))
 
     d = {}
-    for i in x.keys():
+    for i in list(x.keys()):
         if x[i].value() == 1:
-            print("Vector {} is packed in bin {}.".format(*i))
+            print(("Vector {} is packed in bin {}.".format(*i)))
             if i[1] in d:
                 d[i[1]] += np.array(eval(i[0]))
             else:
                 d[i[1]] = np.array(eval(i[0]))
-    ordered = [d.values()[i] for i in solve_tsp_dynamic(d.values())]
+    ordered = [list(d.values())[i] for i in solve_tsp_dynamic(list(d.values()))]
     for key in d:
-        print "bin "+str(key) + ": " + str(d[key])
+        print("bin "+str(key) + ": " + str(d[key]))
     for i in range(len(ordered)):
-        print("batch "+str(i) + ": " + str(ordered[i]) + " sum: " + str(sum(ordered[i])))
+        print(("batch "+str(i) + ": " + str(ordered[i]) + " sum: " + str(sum(ordered[i]))))
     return ordered
 
 def euclidean(x,y):
@@ -78,7 +78,7 @@ def solve_tsp_dynamic(points,distance=euclidean):
     cnt = len(points)
     for m in range(2, cnt):
         B = {}
-        for S in [frozenset(C) | {0} for C in itertools.combinations(range(1, cnt), m)]:
+        for S in [frozenset(C) | {0} for C in itertools.combinations(list(range(1, cnt)), m)]:
             for j in S - {0}:
                 B[(S, j)] = min([(A[(S - {j}, k)][0] + all_distances[k][j], A[(S - {j}, k)][1] + [j]) for k in S if
                                  k != 0 and k != j])  # this will use 0th index of tuple for ordering, the same as if key=itemgetter(0) used
