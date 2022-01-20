@@ -23,9 +23,9 @@ def pack(capacity, picksize):
     binCapacity = ([capacity] * maxBins)
     binCost = [10] * maxBins
 
-    y = pulp.LpVariable.dicts('BinUsed', list(range(maxBins)), lowBound=0, upBound=1, cat=pulp.LpInteger)
+    y = pulp.LpVariable.dicts('BinUsed', list(range(maxBins)), lowBound=0, upBound=1, cat='Integer')
     possible_ItemInBin = [(itemTuple[0], binNum) for itemTuple in items for binNum in range(maxBins)]
-    x = pulp.LpVariable.dicts('itemInBin', possible_ItemInBin, lowBound=0, upBound=1, cat=pulp.LpInteger)
+    x = pulp.LpVariable.dicts('itemInBin', possible_ItemInBin, lowBound=0, upBound=1, cat='Integer')
 
     # Model formulation
     prob = LpProblem("Bin Packing Problem", LpMinimize)
